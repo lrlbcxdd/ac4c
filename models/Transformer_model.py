@@ -14,7 +14,7 @@ class model(nn.Module):
 
         self.embedding = nn.Embedding(24,self.emb_dim)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.emb_dim,nhead=8)
-        self.transformer_encoder_seq = nn.TransformerEncoder(self.encoder_layer,num_layers=1)
+        self.transformer_encoder_seq = nn.TransformerEncoder(self.encoder_layer,num_layers=3)
         self.GRU = nn.GRU(self.emb_dim,self.hidden_dim,num_layers=2,bidirectional=True,dropout=0.2)
 
 

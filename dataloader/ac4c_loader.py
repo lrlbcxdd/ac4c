@@ -28,11 +28,11 @@ def load_ac4c_data():
     val_seq, val_label = list(val_data['Sequence']), list(val_data['Label'])
     test_seq, test_label = list(test_data['Sequence']), list(test_data['Label'])
 
-    length = 150
+    half_length = 40
 
-    train_seq = process_data(train_seq,length)
-    test_seq = process_data(test_seq,length)
-    val_seq = process_data(val_seq,length)
+    train_seq = process_data(train_seq,half_length)
+    test_seq = process_data(test_seq,half_length)
+    val_seq = process_data(val_seq,half_length)
 
 
     train_seq = [torch.tensor([label_enc[i] for i in seq])for seq in train_seq]
@@ -47,5 +47,5 @@ def load_ac4c_data():
     val_dataloader = DataLoader(val_dataset,batch_size=64,shuffle=True)
     test_dataloader = DataLoader(test_dataset,batch_size=64,shuffle=True)
 
-    return train_dataloader , val_dataloader ,test_dataloader , length * 2 + 1
+    return train_dataloader , val_dataloader ,test_dataloader , half_length * 2 + 1
 
