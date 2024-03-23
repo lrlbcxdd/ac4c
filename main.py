@@ -4,6 +4,8 @@ import torch
 import time
 import torch.nn as nn
 from models import Transformer_model
+from models import Another_Transformer
+from models import TextCNN
 from dataloader import ac4c_loader
 import random
 
@@ -40,12 +42,13 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(seed)
 
     net = Transformer_model.model(max_len).to(device)
+    # net = TextCNN.CnnModel().to(device)
 
     lr =0.001
     optimizer = torch.optim.Adam(net.parameters(),lr=lr,weight_decay= 5e-4)
 
     best_val_acc = 0
-    EPOCH = 10
+    EPOCH = 50
     for epoch in range(EPOCH):
         loss_list = []
         t0 = time.time()

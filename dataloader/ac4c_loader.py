@@ -28,7 +28,8 @@ def load_ac4c_data():
     val_seq, val_label = list(val_data['Sequence']), list(val_data['Label'])
     test_seq, test_label = list(test_data['Sequence']), list(test_data['Label'])
 
-    half_length = 40
+    # 0 - 206
+    half_length = 200
 
     train_seq = process_data(train_seq,half_length)
     test_seq = process_data(test_seq,half_length)
