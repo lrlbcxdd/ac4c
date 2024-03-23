@@ -12,32 +12,38 @@ class model(nn.Module):
         self.batch_size = 64
         self.emb_dim = 512
 
-        self.embedding = nn.Embedding(24,self.emb_dim)
+        self.embedding = nn.Embedding(5,self.emb_dim)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.emb_dim,nhead=8)
-        self.transformer_encoder_seq = nn.TransformerEncoder(self.encoder_layer,num_layers=3)
+        self.transformer_encoder_seq = nn.TransformerEncoder(self.encoder_layer,num_layers=1)
         self.GRU = nn.GRU(self.emb_dim,self.hidden_dim,num_layers=2,bidirectional=True,dropout=0.2)
 
 
         self.block = nn.Sequential(nn.Linear(self.hidden_dim *(2 * self.max_len + 4),2048),
-                                   nn.BatchNorm1d(2048),
-                                   nn.LeakyReLU(),
+                                   nn.Dropout(0.3),
+                                   nn.ReLU(),
                                    nn.Linear(2048,1024),
                                    )
 
+        # self.block = nn.Sequential(nn.Linear(self.emb_dim * max_len,2048),
+        #                            nn.Dropout(0.4),
+        #                            nn.ReLU(),
+        #                            nn.Linear(2048,1024),
+        #                            )
+
         self.block1 = nn.Sequential(nn.Linear(1024, 512),
-                                    nn.BatchNorm1d(512),
-                                    nn.LeakyReLU(),
+                                    nn.Dropout(0.3),
+                                    nn.ReLU(),
                                     nn.Linear(512, 256)
                                     )
 
         self.block2 = nn.Sequential(nn.Linear(256, 128),
-                                    nn.BatchNorm1d(128),
-                                    nn.LeakyReLU(),
+                                    nn.Dropout(0.3),
+                                    nn.ReLU(),
                                     nn.Linear(128, 64))
 
         self.block3 = nn.Sequential(nn.Linear(64, 8),
-                                    nn.BatchNorm1d(8),
-                                    nn.LeakyReLU(),
+                                    nn.Dropout(0.3),
+                                    nn.ReLU(),
                                     nn.Linear(8, 2))
 
     def forward(self,x):
@@ -47,6 +53,8 @@ class model(nn.Module):
         output = output.permute(1,0,2) # output: torch.Size([128, max_len, hidden_dim*2])
         hn = hn.permute(1,0,2)  # torch.Size([128, 4, hidden_dim])
 
+
+        # output = self.transformer_encoder_seq(x) # torch.Size([128, max_len , 512])
 
         output = output.reshape(output.shape[0], -1) # torch.Size([128, max_len * hidden_dim *2])
         hn = hn.reshape(output.shape[0],-1) # torch.Size([128, 4* hidden_dim])
