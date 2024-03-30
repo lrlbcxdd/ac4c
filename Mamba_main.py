@@ -1,14 +1,11 @@
 import numpy as np
-import pandas as pd
 import torch
 import time
 import torch.nn as nn
-from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.metrics import roc_auc_score
 
-from models import Transformer_GRU
-from models import Another_Transformer
-from models import TextCNN
-from dataloader import test_loader,ac4c_loader
+from models import Mamba
+from dataloader import ac4c_loader,test_loader
 import random
 
 
@@ -35,14 +32,13 @@ def evaluate_accuracy(data_iter, net, device):
 
     return acc_sum / n, auc
 
-
 def to_log(log):
     with open("./results/ExamPle_Log.log", "a+") as f:
         f.write(log + '\n')
 
 device = torch.device("cuda", 0)
 criterion_CE = nn.CrossEntropyLoss()
-train_iter , val_iter , test_iter , max_len =  test_loader.load_ac4c_data()
+train_iter , val_iter , test_iter , max_len=  test_loader.load_ac4c_data()
 
 
 if __name__ == '__main__':
@@ -53,42 +49,45 @@ if __name__ == '__main__':
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
 
-    # net = Another_Transformer.Transformer(max_len).to(device)
-    net = Transformer_GRU.model(max_len).to(device)
-    # net = TextCNN.CnnModel().to(device)
+    net = Mamba.Mamba(seq_len=max_len,d_model=64,state_size=128).to(device)
 
-    lr =0.0001
-    optimizer = torch.optim.Adam(net.parameters(),lr=lr,weight_decay= 5e-4)
+    optimizer = torch.optim.Adam(net.parameters(),lr=0.001,weight_decay= 5e-4)
 
     best_val_acc = 0
-    EPOCH = 100
-
-
+    EPOCH = 60
     for epoch in range(EPOCH):
         loss_list = []
         t0 = time.time()
         net.train()
 
         for batch in train_iter:
+            optimizer.zero_grad()
+
             data = batch[0].to(device)
             label = batch[1].to(device)
 
-            logits , features = net(data) # logits:(128,2) features(128,128)
+            logits , _ = net(data)  # torch.Size([b, l])
 
             ce_loss = criterion_CE(logits.view(-1,2),label).mean()
 
             train_loss = ce_loss
 
-            optimizer.zero_grad()
-            train_loss.backward()
+            train_loss.backward(retain_graph=True)
+
+            for name, param in net.named_parameters():
+                if 'out_proj.bias' not in name:
+                    # clip weights but not bias for out_proj
+                    torch.nn.utils.clip_grad_norm_(param, max_norm=10.0)
+
             optimizer.step()
 
             loss_list.append(train_loss.item())
 
         net.eval()
+        total_loss = 0
         with torch.no_grad():
-            train_acc , _ = evaluate_accuracy(train_iter,net,device=device)
-            val_acc , auc = evaluate_accuracy(val_iter,net,device=device)
+            train_acc, _ = evaluate_accuracy(train_iter, net, device=device)
+            val_acc, auc = evaluate_accuracy(val_iter, net, device=device)
 
         results = f"epoch: {epoch + 1}, loss: {np.mean(loss_list):.5f}\n"
         results += f'\ttrain_acc: {train_acc:.4f}, val_acc: {val_acc}, val_AUC: {auc} time: {time.time() - t0:.2f}'
@@ -96,15 +95,15 @@ if __name__ == '__main__':
         # to_log(results)
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(net.state_dict(), '/mnt/sdb/home/lrl/code/ac4c/parameters/Transformer_state_dict.pt')
-            torch.save({"best_val_acc": best_val_acc}, '/mnt/sdb/home/lrl/code/ac4c/parameters/Transformer_info.pt')
+            torch.save(net.state_dict(), '/mnt/sdb/home/lrl/code/ac4c/parameters/Mamba_state_dict.pt')
+            torch.save({"best_val_acc": best_val_acc}, '/mnt/sdb/home/lrl/code/ac4c/parameters/Mamba_info.pt')
             print(f"best_val_acc: {best_val_acc}")
 
     net.eval()
     with torch.no_grad():
-        pre_trained = torch.load('/mnt/sdb/home/lrl/code/ac4c/parameters/Transformer_state_dict.pt')
+        pre_trained = torch.load( '/mnt/sdb/home/lrl/code/ac4c/parameters/Mamba_state_dict.pt')
         net.load_state_dict(pre_trained)
-        test_acc , auc= evaluate_accuracy(test_iter,net,device=device)
+        test_acc, auc = evaluate_accuracy(test_iter, net, device=device)
 
     results = f"final test, loss: {np.mean(loss_list):.5f}\n"
     results += f'\ttest_acc: {test_acc}, test_auc: {auc} time: {time.time() - t0:.2f}'

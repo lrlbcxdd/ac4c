@@ -29,7 +29,7 @@ def load_ac4c_data():
     test_seq, test_label = list(test_data['Sequence']), list(test_data['Label'])
 
     # 0 - 206
-    half_length = 200
+    half_length = 41
 
     train_seq = process_data(train_seq,half_length)
     test_seq = process_data(test_seq,half_length)
@@ -44,9 +44,9 @@ def load_ac4c_data():
     val_dataset = MydataSet.MyDataSet(val_seq, val_label)
     test_dataset = MydataSet.MyDataSet(test_seq, test_label)
 
-    train_dataloader = DataLoader(train_dataset,batch_size=64,shuffle=True)
-    val_dataloader = DataLoader(val_dataset,batch_size=64,shuffle=True)
-    test_dataloader = DataLoader(test_dataset,batch_size=64,shuffle=True)
+    train_dataloader = DataLoader(train_dataset,batch_size=32,shuffle=True)
+    val_dataloader = DataLoader(val_dataset,batch_size=32,shuffle=True)
+    test_dataloader = DataLoader(test_dataset,batch_size=32,shuffle=True)
 
     return train_dataloader , val_dataloader ,test_dataloader , half_length * 2 + 1
 

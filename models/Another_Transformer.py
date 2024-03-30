@@ -2,7 +2,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 
-n_layers = 2
+n_layers = 1
 n_head = 8
 d_model = 256
 d_ff = 32
