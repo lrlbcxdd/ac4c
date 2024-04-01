@@ -57,7 +57,7 @@ if __name__ == '__main__':
     net = Transformer_GRU.model(max_len).to(device)
     # net = TextCNN.CnnModel().to(device)
 
-    lr =0.0001
+    lr =0.001
     optimizer = torch.optim.Adam(net.parameters(),lr=lr,weight_decay= 5e-4)
 
     best_val_acc = 0

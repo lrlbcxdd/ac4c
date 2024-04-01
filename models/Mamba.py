@@ -182,4 +182,5 @@ class MambaBlock(nn.Module):
         x_residual = F.silu(self.D(x))
         x_combined = x_act * x_residual
         x_out = self.out_proj(x_combined)
+
         return x_out

@@ -18,17 +18,17 @@ class model(nn.Module):
         self.GRU = nn.GRU(self.emb_dim,self.hidden_dim,num_layers=2,bidirectional=True,dropout=0.2)
 
 
-        # self.block = nn.Sequential(nn.Linear(self.hidden_dim *(2 * self.max_len + 4),2048),
-        #                            nn.BatchNorm1d(2048),
-        #                            nn.LeakyReLU(),
-        #                            nn.Linear(2048,1024),
-        #                            )
-
-        self.block = nn.Sequential(nn.Linear(self.emb_dim * max_len,2048),
-                                   nn.Dropout(0.25),
-                                   nn.ReLU(),
+        self.block = nn.Sequential(nn.Linear(self.hidden_dim *(2 * self.max_len + 4),2048),
+                                   nn.BatchNorm1d(2048),
+                                   nn.LeakyReLU(),
                                    nn.Linear(2048,1024),
                                    )
+
+        # self.block = nn.Sequential(nn.Linear(self.emb_dim * max_len,2048),
+        #                            nn.Dropout(0.25),
+        #                            nn.ReLU(),
+        #                            nn.Linear(2048,1024),
+        #                            )
 
         self.block1 = nn.Sequential(nn.Linear(1024, 512),
                                     nn.BatchNorm1d(512),
@@ -48,17 +48,17 @@ class model(nn.Module):
 
     def forward(self,x):
         x = self.embedding(x)       # torch.Size([128, max_len, 512])
-        # output = self.transformer_encoder_seq(x).permute(1,0,2) # torch.Size([max_len, 128, 512])
-        # output , hn = self.GRU(output)  # output: torch.Size([max_len, 128, hidden_dim*2]) hn: torch.Size([4, 128, 25])
-        # output = output.permute(1,0,2) # output: torch.Size([128, max_len, hidden_dim*2])
-        # hn = hn.permute(1,0,2)  # torch.Size([128, 4, hidden_dim])
+        output = self.transformer_encoder_seq(x).permute(1,0,2) # torch.Size([max_len, 128, 512])
+        output , hn = self.GRU(output)  # output: torch.Size([max_len, 128, hidden_dim*2]) hn: torch.Size([4, 128, 25])
+        output = output.permute(1,0,2) # output: torch.Size([128, max_len, hidden_dim*2])
+        hn = hn.permute(1,0,2)  # torch.Size([128, 4, hidden_dim])
 
 
-        output = self.transformer_encoder_seq(x) # torch.Size([128, max_len , 512])
+        # output = self.transformer_encoder_seq(x) # torch.Size([128, max_len , 512])
 
         output = output.reshape(output.shape[0], -1) # torch.Size([128, max_len * hidden_dim *2])
-        # hn = hn.reshape(output.shape[0],-1) # torch.Size([128, 4* hidden_dim])
-        # output = torch.cat([output, hn], 1)   # output:torch.Size([128, hidden_dim *(2*max_len + 4)])
+        hn = hn.reshape(output.shape[0],-1) # torch.Size([128, 4* hidden_dim])
+        output = torch.cat([output, hn], 1)   # output:torch.Size([128, hidden_dim *(2*max_len + 4)])
 
         output = self.block(output) # output:torch.Size([128, 1024])
         x = self.block1(output) # output:torch.Size([128, 256])
