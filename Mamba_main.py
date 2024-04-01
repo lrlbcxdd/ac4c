@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     net = Mamba.Mamba(seq_len=max_len,d_model=64,state_size=128).to(device)
 
-    optimizer = torch.optim.Adam(net.parameters(),lr=0.001,weight_decay= 5e-4)
+    optimizer = torch.optim.Adam(net.parameters(),lr=0.001,weight_decay= 5e-6)
 
     best_val_acc = 0
     EPOCH = 60
