@@ -13,15 +13,15 @@ def process_data(sequences,length):
     return new_sequences
 
 
-def load_ac4c_data():
+def load_ac4c_data(index):
     label_enc = {v:k for k,v in enumerate('NATCG')} # Z:0
 
-    train_file0 = r"/mnt/sdb/home/lrl/code/Dataset/qjb/train/0.csv"
-    train_file1 = r"/mnt/sdb/home/lrl/code/Dataset/qjb/train/1.csv"
-    val_file0 = r"/mnt/sdb/home/lrl/code/Dataset/qjb/val/0.csv"
-    val_file1 = r"/mnt/sdb/home/lrl/code/Dataset/qjb/val/1.csv"
-    test_file0 = r"/mnt/sdb/home/lrl/code/Dataset/qjb/test/0.csv"
-    test_file1 = r"/mnt/sdb/home/lrl/code/Dataset/qjb/test/1.csv"
+    train_file0 = f"/mnt/sdb/home/lrl/code/Dataset/qjb/train/{2*index}.csv"
+    train_file1 = f"/mnt/sdb/home/lrl/code/Dataset/qjb/train/{2*index+1}.csv"
+    val_file0 = f"/mnt/sdb/home/lrl/code/Dataset/qjb/val/{2*index}.csv"
+    val_file1 = f"/mnt/sdb/home/lrl/code/Dataset/qjb/val/{2*index+1}.csv"
+    test_file0 = f"/mnt/sdb/home/lrl/code/Dataset/qjb/test/{2*index}.csv"
+    test_file1 = f"/mnt/sdb/home/lrl/code/Dataset/qjb/test/{2*index+1}.csv"
 
     train_data0 = pd.read_csv(train_file0)
     train_data1 = pd.read_csv(train_file1)
@@ -39,7 +39,7 @@ def load_ac4c_data():
 
     # 0 - 206
     # max_len = 1001
-    half_length = 50
+    half_length = 500
 
     train_seq = process_data(train_seq,half_length)
     test_seq = process_data(test_seq,half_length)
