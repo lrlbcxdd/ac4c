@@ -23,7 +23,7 @@ print(colored(f"{transformers.__version__}", "blue"))
 GLUE_TASKS = ["cola", "mnli", "mnli-mm", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"]
 task = "cola"
 
-checkpoint = '/mnt/sdb/home/lrl/code/git_hyenaDNA/hyenadna-large-1m-seqlen-hf'
+checkpoint = '/mnt/sdb/home/lrl/code/git_hyenaDNA/hyenadna-tiny-1k-seqlen-d256-hf'
 
 
 class EarlyStopping:
