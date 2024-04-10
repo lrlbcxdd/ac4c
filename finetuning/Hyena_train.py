@@ -16,7 +16,7 @@ import time
 print("start")
 print("build model")
 
-device = torch.device("cuda", 3)
+device = torch.device("cuda", 2)
 
 print(colored(f"{transformers.__version__}", "blue"))
 
@@ -61,20 +61,47 @@ class HyenaDNA(nn.Module):
 
         self.device = device
 
-        self.tokenizer = AutoTokenizer.from_pretrained(checkpoint, use_fast=True, trust_remote_code=True)
-        self.model = AutoModelForSequenceClassification.from_pretrained(checkpoint, torch_dtype=torch.bfloat16, trust_remote_code=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=True)
+        self.model = AutoModelForSequenceClassification.from_pretrained(checkpoint, torch_dtype=torch.bfloat16, output_hidden_states=True, trust_remote_code=True)
 
+        # self.block = nn.Sequential(
+        #     nn.Linear(256, 64),  # 1001:128384  51:6784  510：65536
+        #     nn.Dropout(0.2),
+        #     nn.LeakyReLU(),
+        #     nn.Linear(64,2)
+        # )
+
+        self.block = nn.Sequential(
+            nn.Linear(256256, 1024),  # 1001:128384  51:6784  510：65536
+            nn.BatchNorm1d(1024),
+            # nn.Dropout(0.2),
+            nn.LeakyReLU(),
+            nn.Linear(1024, 128),
+            nn.BatchNorm1d(128),
+            nn.LeakyReLU(),
+            nn.Linear(128, 64),
+            nn.BatchNorm1d(64),
+            nn.LeakyReLU(),
+            nn.Linear(64, 2)
+        )
 
 
     def forward(self, batch_sentences):  # [batch_size,1]
         batch_sentences = list(batch_sentences)
-        batch_sentences_partial = [seq[491:1511] for seq in batch_sentences] # 491 1511
+        batch_sentences_partial = [seq[501:1501] for seq in batch_sentences] # 491 1511
 
         tokenized = self.tokenizer(batch_sentences_partial,truncation=True,return_tensors="pt")
         input_ids = tokenized['input_ids']
         output = self.model(input_ids=input_ids.to(self.device))
+        hidden_state = output['hidden_states'][-1]
+        hidden_state = hidden_state.to(self.block[0].weight.dtype)
 
-        output = output.logits
+        # hidden_state = hidden_state[:,1,:]
+        hidden_state = hidden_state.view(hidden_state.shape[0],-1)
+
+        # output = output.logits
+        output = self.block(hidden_state)
+
 
         return output
 
@@ -216,9 +243,11 @@ metric_name = "accuracy"
 if __name__ == '__main__':
 
 
-    batchsize = 16
+    batchsize = 128
 
-    index = 6
+    index = 5
+
+    max_len = 1001
 
     train_dataset_0 = DatasetDict.from_csv({'train': f'/mnt/sdb/home/lsr/Rm_LR_RNA_modification/data/reprocess/train/{2 * index}.csv'})
     train_dataset_1 = DatasetDict.from_csv({'train': f'/mnt/sdb/home/lsr/Rm_LR_RNA_modification/data/reprocess/train/{2 * index + 1}.csv'})
@@ -301,20 +330,23 @@ if __name__ == '__main__':
         print(results)
         # to_log(results, index)
         valid_acc = valid_performance[0]  # test_performance: [ACC, Sensitivity, Specificity, AUC, MCC]
+        test_performance, test_roc_data, test_prc_data, _ = evaluate(test_loader, model, criterion)
+        test_results = '\n' + '=' * 16 + colored(' Test Performance. Epoch[{}] ', 'red').format(
+            epoch + 1) + '=' * 16 \
+                       + '\n[ACC,\tBACC, \tSE,\t\tSP,\t\tAUC,\tPRE]\n' + '{:.4f},\t{:.4f},\t{:.4f},\t{:.4f},\t{:.4f},\t{:.4f}'.format(
+            test_performance[0], test_performance[1], test_performance[2], test_performance[3],
+            test_performance[4], test_performance[5]) + '\n' + '=' * 60
+        print(test_results)
+
         if valid_acc > best_acc:
             best_acc = valid_acc
-            test_performance, test_roc_data, test_prc_data, _ = evaluate(test_loader, model, criterion)
+
             # best_performance = valid_performance
-            filename = '{}, {}[{:.4f}].pt'.format(f'model_Mamba_model' + ', epoch[{}]'.format(epoch + 1), 'ACC',
+            filename = '{}, {}[{:.4f}].pt'.format(f'model_HeynaDNA_model'+ 'length[{}]'.format(max_len) +', epoch[{}]'.format(epoch + 1), 'ACC',
                                                   test_performance[0])
             save_path_pt = os.path.join(f'Saved_Models/{index + 1}', filename)
             torch.save(model.state_dict(), save_path_pt, _use_new_zipfile_serialization=False)
-            test_results = '\n' + '=' * 16 + colored(' Test Performance. Epoch[{}] ', 'red').format(
-                epoch + 1) + '=' * 16 \
-                           + '\n[ACC,\tBACC, \tSE,\t\tSP,\t\tAUC,\tPRE]\n' + '{:.4f},\t{:.4f},\t{:.4f},\t{:.4f},\t{:.4f},\t{:.4f}'.format(
-                test_performance[0], test_performance[1], test_performance[2], test_performance[3],
-                test_performance[4], test_performance[5]) + '\n' + '=' * 60
-            print(test_results)
+
             # to_log(test_results, index)
             test_ROC = valid_roc_data
             test_PRC = valid_prc_data
@@ -323,10 +355,10 @@ if __name__ == '__main__':
             torch.save(test_roc_data, save_path_roc, _use_new_zipfile_serialization=False)
             torch.save(test_prc_data, save_path_prc, _use_new_zipfile_serialization=False)
 
-        early_stopping(valid_acc, model)
-        if early_stopping.early_stop:
-            print("Early stopping")
-            break
+        # # early_stopping(valid_acc, model)
+        # if early_stopping.early_stop:
+        #     print("Early stopping")
+        #     break
 
 
 
