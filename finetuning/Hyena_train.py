@@ -16,14 +16,14 @@ import time
 print("start")
 print("build model")
 
-device = torch.device("cuda", 2)
+device = torch.device("cuda", 0)
 
 print(colored(f"{transformers.__version__}", "blue"))
 
 GLUE_TASKS = ["cola", "mnli", "mnli-mm", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"]
 task = "cola"
 
-checkpoint = '/mnt/sdb/home/lrl/code/git_hyenaDNA/hyenadna-tiny-1k-seqlen-d256-hf'
+checkpoint = '/mnt/sdb/home/lrl/code/git_hyenaDNA/hyenadna-large-1m-seqlen-hf'
 
 
 class EarlyStopping:
@@ -58,11 +58,16 @@ class EarlyStopping:
 class HyenaDNA(nn.Module):
     def __init__(self, hidden_size=128, device='cuda'):
         super(HyenaDNA, self).__init__()
+        self.hidden_dim = 25
+        self.emb_dim = 256
 
         self.device = device
 
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=True)
-        self.model = AutoModelForSequenceClassification.from_pretrained(checkpoint, torch_dtype=torch.bfloat16, output_hidden_states=True, trust_remote_code=True)
+        # self.tokenizer = AutoTokenizer.from_pretrained( "/mnt/sdb/home/zyx/SpliceBERT-main/models/SpliceBERT.1024nt", use_fast=True)
+        self.model = AutoModelForSequenceClassification.from_pretrained(checkpoint, torch_dtype=torch.bfloat16,ignore_mismatched_sizes=True, output_hidden_states=True, trust_remote_code=True)
+
+        self.GRU = nn.GRU(self.emb_dim, self.hidden_dim, num_layers=2, bidirectional=True,dropout=0.2)
 
         # self.block = nn.Sequential(
         #     nn.Linear(256, 64),  # 1001:128384  51:6784  510：65536
@@ -72,17 +77,17 @@ class HyenaDNA(nn.Module):
         # )
 
         self.block = nn.Sequential(
-            nn.Linear(256256, 1024),  # 1001:128384  51:6784  510：65536
+            nn.Linear(50150, 1024),  # 1001:128384  51:6784  510：65536 GRU:50150  lsr:128512
             nn.BatchNorm1d(1024),
             # nn.Dropout(0.2),
             nn.LeakyReLU(),
-            nn.Linear(1024, 128),
+            nn.Linear(1024, 256),
+            nn.BatchNorm1d(256),
+            nn.LeakyReLU(),
+            nn.Linear(256, 128),
             nn.BatchNorm1d(128),
             nn.LeakyReLU(),
-            nn.Linear(128, 64),
-            nn.BatchNorm1d(64),
-            nn.LeakyReLU(),
-            nn.Linear(64, 2)
+            nn.Linear(128, 2)
         )
 
 
@@ -96,11 +101,23 @@ class HyenaDNA(nn.Module):
         hidden_state = output['hidden_states'][-1]
         hidden_state = hidden_state.to(self.block[0].weight.dtype)
 
+        # 不使用GRU
         # hidden_state = hidden_state[:,1,:]
-        hidden_state = hidden_state.view(hidden_state.shape[0],-1)
+        # hidden_state = hidden_state.view(hidden_state.shape[0],-1)
 
-        # output = output.logits
-        output = self.block(hidden_state)
+        # 用GRU
+        x = hidden_state.permute(1, 0, 2)  # torch.Size([128, 1001, 128])
+        output, hn = self.GRU(x)  # output: torch.Size([max_len, 128, hidden_dim*2]) hn: torch.Size([4, 128, 25])
+        output = output.permute(1, 0, 2)  # output: torch.Size([128, max_len, hidden_dim*2])
+        hn = hn.permute(1, 0, 2)  # torch.Size([128, 4, hidden_dim])
+
+        output = output.reshape(output.shape[0], -1)  # torch.Size([128, max_len * hidden_dim *2])
+        hn = hn.reshape(output.shape[0], -1)  # torch.Size([128, 4* hidden_dim])
+        hidden_state = torch.cat([output, hn], 1)  # output:torch.Size([128, hidden_dim *(2*max_len + 4)])
+
+
+        # 分类器
+        output = self.block(hidden_state)   # torch.Size([32, 50150])
 
 
         return output
@@ -243,9 +260,9 @@ metric_name = "accuracy"
 if __name__ == '__main__':
 
 
-    batchsize = 128
+    batchsize = 32
 
-    index = 5
+    index = 9
 
     max_len = 1001
 
@@ -276,7 +293,7 @@ if __name__ == '__main__':
     test_loader = Data.DataLoader(testDatas, batch_size=batchsize, shuffle=True)
 
 
-    epoch_num = 100
+    epoch_num = 50
 
     print('training...')
 
@@ -293,6 +310,8 @@ if __name__ == '__main__':
     early_stopping = EarlyStopping()
     # criterion = MarginLoss(0.9, 0.1, 0.5)
     best_acc = 0
+    beat_test_acc = 0
+    best_epoch = 0
     print("模型数据已经加载完成,现在开始模型训练。")
 
     for epoch in range(epoch_num):
@@ -330,14 +349,15 @@ if __name__ == '__main__':
         print(results)
         # to_log(results, index)
         valid_acc = valid_performance[0]  # test_performance: [ACC, Sensitivity, Specificity, AUC, MCC]
+
         test_performance, test_roc_data, test_prc_data, _ = evaluate(test_loader, model, criterion)
         test_results = '\n' + '=' * 16 + colored(' Test Performance. Epoch[{}] ', 'red').format(
             epoch + 1) + '=' * 16 \
                        + '\n[ACC,\tBACC, \tSE,\t\tSP,\t\tAUC,\tPRE]\n' + '{:.4f},\t{:.4f},\t{:.4f},\t{:.4f},\t{:.4f},\t{:.4f}'.format(
             test_performance[0], test_performance[1], test_performance[2], test_performance[3],
             test_performance[4], test_performance[5]) + '\n' + '=' * 60
+        test_acc =test_performance[0]
         print(test_results)
-
         if valid_acc > best_acc:
             best_acc = valid_acc
 
@@ -355,6 +375,10 @@ if __name__ == '__main__':
             torch.save(test_roc_data, save_path_roc, _use_new_zipfile_serialization=False)
             torch.save(test_prc_data, save_path_prc, _use_new_zipfile_serialization=False)
 
+        if test_acc > beat_test_acc:
+            beat_test_acc = test_acc
+            best_epoch = epoch
+    print(beat_test_acc,best_epoch)
         # # early_stopping(valid_acc, model)
         # if early_stopping.early_stop:
         #     print("Early stopping")
