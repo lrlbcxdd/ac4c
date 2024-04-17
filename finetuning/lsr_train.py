@@ -232,7 +232,7 @@ class BertClassificationModel(nn.Module):
 
     def forward(self, batch_sentences):  # [batch_size,1]
         batch_sentences = list(batch_sentences)
-        batch_sentences_partial = [seq[491:1511] for seq in batch_sentences]
+        batch_sentences_partial = [seq for seq in batch_sentences]
         token_seq = self.tokenizer_510(batch_sentences_partial,
                                        truncation=True,
                                        return_tensors="pt", max_length=512)

@@ -13,6 +13,7 @@ import torch.nn as nn
 from sklearn.metrics import auc, roc_curve, precision_recall_curve, average_precision_score
 import time
 
+
 print("start")
 print("build model")
 
@@ -77,7 +78,7 @@ class HyenaDNA(nn.Module):
         # )
 
         self.block = nn.Sequential(
-            nn.Linear(50150, 1024),  # 1001:128384  51:6784  510：65536 GRU:50150  lsr:128512
+            nn.Linear(100250, 1024),  # 1001:128384  51:6784  510：65536 GRU:50150  lsr:128512
             nn.BatchNorm1d(1024),
             # nn.Dropout(0.2),
             nn.LeakyReLU(),
@@ -93,7 +94,7 @@ class HyenaDNA(nn.Module):
 
     def forward(self, batch_sentences):  # [batch_size,1]
         batch_sentences = list(batch_sentences)
-        batch_sentences_partial = [seq[501:1501] for seq in batch_sentences] # 491 1511
+        batch_sentences_partial = [seq for seq in batch_sentences] # 491 1511
 
         tokenized = self.tokenizer(batch_sentences_partial,truncation=True,return_tensors="pt")
         input_ids = tokenized['input_ids']
@@ -106,7 +107,7 @@ class HyenaDNA(nn.Module):
         # hidden_state = hidden_state.view(hidden_state.shape[0],-1)
 
         # 用GRU
-        x = hidden_state.permute(1, 0, 2)  # torch.Size([128, 1001, 128])
+        x = hidden_state.permute(1, 0, 2)  # torch.Size([128, 1001, 128])   torch.Size([32, 2003, 256])
         output, hn = self.GRU(x)  # output: torch.Size([max_len, 128, hidden_dim*2]) hn: torch.Size([4, 128, 25])
         output = output.permute(1, 0, 2)  # output: torch.Size([128, max_len, hidden_dim*2])
         hn = hn.permute(1, 0, 2)  # torch.Size([128, 4, hidden_dim])
@@ -117,7 +118,7 @@ class HyenaDNA(nn.Module):
 
 
         # 分类器
-        output = self.block(hidden_state)   # torch.Size([32, 50150])
+        output = self.block(hidden_state)   # torch.Size([32, 50150])   torch.Size([32, 100250])
 
 
         return output
@@ -260,9 +261,9 @@ metric_name = "accuracy"
 if __name__ == '__main__':
 
 
-    batchsize = 32
+    batchsize = 8
 
-    index = 9
+    index = 0
 
     max_len = 1001
 
