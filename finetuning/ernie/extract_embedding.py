@@ -133,7 +133,7 @@ if __name__ == "__main__":
     parser.add_argument("--seqs_path", default='./data/test_seqs.txt', type=str, help="The path of input seqs")
     parser.add_argument("--save_path", default='./results/ernie_rna_representations/test_seqs/', type=str, help="The path of output extracted by ernie")
     parser.add_argument("--arg_overrides", default={ "data": './src/dict/' }, help="The path of vocabulary")
-    parser.add_argument("--ernie_rna_pretrained_checkpoint", default='./checkpoint/ERNIE-RNA_checkpoint/ERNIE-RNA_pretrain.pt', type=str, help="The path of ernie checkpoint")
+    parser.add_argument("--ernie_rna_pretrained_checkpoint", default='/mnt/sdb/home/lrl/code/git_ERNIE/ERNIE-RNA/checkpoint/ERNIE-RNA_checkpoint/ERNIE-RNA_pretrain.pt', type=str, help="The path of ernie checkpoint")
     parser.add_argument("--device", default='cuda:0', type=str, help="device")
 
     args = parser.parse_args()
@@ -156,6 +156,6 @@ if __name__ == "__main__":
     
     attnmap = extract_attnmap_of_ernierna(seqs_lst, attn_len=None, arg_overrides=args.arg_overrides, pretrained_model_path=args.ernie_rna_pretrained_checkpoint, device=args.device)
     # print(attnmap.shape) # attnmap shape like [Batch, Length, Length]
-    # print(attnmap)
+    print(attnmap)
     np.save(args.save_path + 'attnmap.npy',attnmap)
     print(f'Done in {time.time()-start}s!')

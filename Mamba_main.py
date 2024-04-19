@@ -38,7 +38,7 @@ def to_log(log):
 
 device = torch.device("cuda", 0)
 criterion_CE = nn.CrossEntropyLoss()
-train_iter , val_iter , test_iter , max_len=  test_loader.load_ac4c_data()
+train_iter , val_iter , test_iter , max_len=  test_loader.load_ac4c_data(1)
 
 
 if __name__ == '__main__':

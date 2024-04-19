@@ -40,7 +40,7 @@ def process_data(sequences,length):
     new_sequences = []
     for sequence in sequences:
         center_point = len(sequence) // 2  # 计算序列的中心点位置
-        new_seq = sequence[center_point - length:center_point + length + 1]  # 取中心点左侧40个字符
+        new_seq = sequence[center_point - length:center_point + length + 1]  # 取中心点左侧length个字符
         new_sequences.append(new_seq)
     return new_sequences
 
@@ -69,6 +69,12 @@ def load_ac4c_data(index):
     test_seq  = list(test_data0['data'])+(list(test_data1['data']))
     test_label = list(test_data0['label'])  +  (list(test_data1['label']))
 
+    half_length = 25
+
+    train_seq = process_data(train_seq,half_length)
+    test_seq = process_data(test_seq,half_length)
+    val_seq = process_data(val_seq,half_length)
+
     # 0 - 206
     # max_len = 1001
     train_seq, train_len = seq_to_index(train_seq)
@@ -79,9 +85,9 @@ def load_ac4c_data(index):
     val_dataset = ErniedataSet.MyDataset(val_seq, val_label,val_len)
     test_dataset = ErniedataSet.MyDataset(test_seq, test_label,test_len)
 
-    train_dataloader = DataLoader(train_dataset,batch_size=4,shuffle=True,drop_last=True)
-    val_dataloader = DataLoader(val_dataset,batch_size=4,shuffle=True,drop_last=True)
-    test_dataloader = DataLoader(test_dataset,batch_size=4,shuffle=True,drop_last=True)
+    train_dataloader = DataLoader(train_dataset,batch_size=32,shuffle=True,drop_last=True)
+    val_dataloader = DataLoader(val_dataset,batch_size=32,shuffle=True,drop_last=True)
+    test_dataloader = DataLoader(test_dataset,batch_size=32,shuffle=True,drop_last=True)
 
     return train_dataloader , val_dataloader ,test_dataloader
 

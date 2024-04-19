@@ -169,7 +169,7 @@ num_labels = 2
 metric_name = "accuracy"
 
 class Ernierna(nn.Module):
-    def __init__(self, hidden_size=128, device='cuda'):
+    def __init__(self, hidden_size=128, device='cuda:2'):
 
         super(Ernierna, self).__init__()
         self.hidden_dim = 25
@@ -183,14 +183,28 @@ class Ernierna(nn.Module):
         self.GRU = nn.GRU(self.emb_dim, self.hidden_dim, num_layers=2, bidirectional=True,dropout=0.2)
 
         # self.block = nn.Sequential(
-        #     nn.Linear(256, 64),  # 1001:128384  51:6784  510：65536
-        #     nn.Dropout(0.2),
+        #     nn.Linear(768 * 1003, 1024),
+        #     nn.BatchNorm1d(1024, affine=False),
         #     nn.LeakyReLU(),
-        #     nn.Linear(64,2)
+        #     nn.Linear(1024, 256),
+        #     nn.BatchNorm1d(256, affine=False),
+        #     nn.LeakyReLU(),
+        #     nn.Linear(256, 64),
+        #     nn.BatchNorm1d(64, affine=False),
+        #     nn.LeakyReLU(),
+        #     nn.Linear(64, 2)
         # )
 
+        # self.block = nn.Sequential(
+        #     nn.Linear(768, 128),  # 1001:128384  51:6784  510：65536
+        #     nn.BatchNorm1d(128),
+        #     nn.LeakyReLU(),
+        #     nn.Linear(128,2)
+        # )
+
+
         self.block = nn.Sequential(
-            nn.Linear(50250, 1024),  # 1001:128384  51:6784  510：65536 GRU:50150  lsr:128512
+            nn.Linear(2750, 1024),  #2750 53*768
             nn.BatchNorm1d(1024),
             # nn.Dropout(0.2),
             nn.LeakyReLU(),
@@ -215,8 +229,9 @@ class Ernierna(nn.Module):
         embedding = embedding.squeeze(dim=1)    # torch.Size([8, 1003, 768])
 
         # hidden_state = embedding[:,0,:] # torch.Size([8, 768])
+        # hidden_state = embedding.view(embedding.shape[0],-1)
 
-        # 用GRU
+        # # 用GRU
         x = embedding.permute(1, 0, 2)  # torch.Size([4, 1003, 768])
         output, hn = self.GRU(x)  # output: torch.Size([1003, 4, hidden_dim*2]) hn: torch.Size([4, 4, 25])
         output = output.permute(1, 0, 2)  # torch.Size([4, 1003, 25])
@@ -237,7 +252,8 @@ class Ernierna(nn.Module):
 
 
 if __name__ == '__main__':
-    index = 9
+    index = 2
+    model_name = 'GRU+RNA'
 
     train_loader , valid_loader , test_loader =  ernie_loader.load_ac4c_data(index)
 
@@ -246,7 +262,7 @@ if __name__ == '__main__':
     print('training...')
 
     # load model
-    model = Ernierna().to(device)
+    model = Ernierna(device=device).to(device)
     print('Model Loading Done!!!')
 
 
@@ -306,7 +322,7 @@ if __name__ == '__main__':
             best_test_acc = test_acc
             best_epoch = epoch + 1
             # best_performance = valid_performance
-            filename = '{}, {}[{:.4f}].pt'.format(f'model_Ernie_model' + ', epoch[{}]'.format(epoch + 1), 'ACC',
+            filename = '{},{}, {}[{:.4f}].pt'.format(f'model_Ernie_model_51' + ', epoch[{}]'.format(epoch + 1),model_name, 'ACC',
                                                   test_performance[0])
             save_path_pt = os.path.join(f'Saved_Models/{index + 1}', filename)
             torch.save(model.state_dict(), save_path_pt, _use_new_zipfile_serialization=False)
