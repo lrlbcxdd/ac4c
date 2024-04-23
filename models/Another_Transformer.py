@@ -8,7 +8,7 @@ d_model = 256
 d_ff = 32
 d_k = 32
 d_v = 32
-device = torch.device("cuda:3")
+device = torch.device("cuda:0")
 
 def get_attn_pad_mask(seq):
     batch_size, seq_len = seq.size()

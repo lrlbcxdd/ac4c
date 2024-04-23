@@ -246,11 +246,3 @@ if __name__ == '__main__':
             save_path_prc = os.path.join(f'PRC/{index + 1}', filename)
             torch.save(test_roc_data, save_path_roc, _use_new_zipfile_serialization=False)
             torch.save(test_prc_data, save_path_prc, _use_new_zipfile_serialization=False)
-
-
-
-
-
-
-
-

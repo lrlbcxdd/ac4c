@@ -16,28 +16,18 @@ class model(nn.Module):
         self.GRU = nn.GRU(self.emb_dim,self.hidden_dim,num_layers=2,bidirectional=True,dropout=0.2)
 
         # 用GRU的线性层
-        self.block = nn.Sequential(nn.Linear(self.hidden_dim * (2 * self.max_len + 4), 2048),
-                                   nn.BatchNorm1d(2048),
+        self.block = nn.Sequential(nn.Linear(self.hidden_dim * (2 * self.max_len + 4), 1024),
+                                   nn.BatchNorm1d(1024),
                                    nn.ReLU(),
-                                   nn.Linear(2048, 1024),
+                                   nn.Linear(1024, 256),
+                                   nn.BatchNorm1d(256),
+                                   nn.ReLU(),
+                                   nn.Linear(256,64),
+                                   nn.BatchNorm1d(64),
+                                   nn.ReLU(),
+                                   nn.Linear(64,2)
                                    )
 
-
-        self.block1 = nn.Sequential(nn.Linear(1024, 512),
-                                    nn.BatchNorm1d(512),
-                                    nn.ReLU(),
-                                    nn.Linear(512, 256)
-                                    )
-
-        self.block2 = nn.Sequential(nn.Linear(256, 128),
-                                    nn.BatchNorm1d(128),
-                                    nn.ReLU(),
-                                    nn.Linear(128, 64))
-
-        self.block3 = nn.Sequential(nn.Linear(64, 8),
-                                    nn.Dropout(0.25),
-                                    nn.ReLU(),
-                                    nn.Linear(8, 2))
 
     def forward(self,x):
         x = self.embedding(x).permute(1,0,2)       # torch.Size([128, max_len, 512])
@@ -52,8 +42,5 @@ class model(nn.Module):
         output = torch.cat([output, hn], 1)   # output:torch.Size([128, hidden_dim *(2*max_len + 4)])
 
         output = self.block(output)  # output:torch.Size([128, 1024])
-        x = self.block1(output)  # output:torch.Size([128, 256])
-        x = self.block2(x)  # output:torch.Size([128, 64])
-        output = self.block3(x)  # x:torch.Size([128, 64]) # output:torch.Size([128, 2])
 
-        return output , x
+        return output , 1

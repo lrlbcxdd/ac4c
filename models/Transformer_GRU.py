@@ -57,9 +57,11 @@ class model(nn.Module):
         output = output.permute(1,0,2) # output: torch.Size([128, max_len, hidden_dim*2])
         hn = hn.permute(1,0,2)  # torch.Size([128, 4, hidden_dim])
 
+        output = output.reshape(output.shape[0], -1)  # torch.Size([128, max_len * hidden_dim *2])
+        hn = hn.reshape(output.shape[0], -1)  # torch.Size([128, 4* hidden_dim])
         output = torch.cat([output, hn], 1)   # output:torch.Size([128, hidden_dim *(2*max_len + 4)])
 
-        output = output[:, 0, :]  # torch.Size([64, 512])
+        # output = output[:, 0, :]  # torch.Size([64, 512])
         # 不用GRU
         # output = self.transformer_encoder_seq(x) # torch.Size([128, max_len , 512])
         # output = output.reshape(output.shape[0], -1) # torch.Size([128, max_len * hidden_dim *2])

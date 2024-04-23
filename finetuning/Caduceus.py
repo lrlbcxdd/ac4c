@@ -67,7 +67,7 @@ class Caduceus(nn.Module):
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint,trust_remote_code=True)
 
         self.model = AutoModelForMaskedLM.from_pretrained(checkpoint,trust_remote_code=True)
-        self.GRU = nn.GRU(self.emb_dim, self.hidden_dim, num_layers=2, bidirectional=True,dropout=0.2)
+        # self.GRU = nn.GRU(self.emb_dim, self.hidden_dim, num_layers=2, bidirectional=True,dropout=0.2)
 
         # self.block = nn.Sequential(
         #     nn.Linear(256, 64),  # 1001:128384  51:6784  510：65536
@@ -77,7 +77,7 @@ class Caduceus(nn.Module):
         # )
 
         self.block = nn.Sequential(
-            nn.Linear(100250, 1024),  # 1001:128384  51:6784  510：65536 GRU:50150  lsr:128512
+            nn.Linear(256*1001, 1024),  # 1001:128384  51:6784  510：65536 GRU:50150  lsr:128512
             nn.BatchNorm1d(1024),
             # nn.Dropout(0.2),
             nn.LeakyReLU(),
@@ -103,7 +103,7 @@ class Caduceus(nn.Module):
 
         # 不使用GRU
         # hidden_state = hidden_state[:,1,:]
-        # hidden_state = hidden_state.view(hidden_state.shape[0],-1)
+        hidden_state = hidden_state.view(hidden_state.shape[0],-1)
 
         # 用GRU
         # x = hidden_state.permute(1, 0, 2)  # torch.Size([128, 1001, 128])   torch.Size([32, 2003, 256])
@@ -256,8 +256,23 @@ task_to_keys = {
 num_labels = 2
 metric_name = "accuracy"
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.enabled = False
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 if __name__ == '__main__':
+
+    SEED = 42
+    set_seed(seed= SEED)
 
 
     batchsize = 8

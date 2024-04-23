@@ -2,22 +2,22 @@ import csv
 import random
 import pandas as pd
 
-# def read_fasta_file(file_path):
-#     sequences = []
-#     headers = []
-#
-#     with open(file_path, 'r') as file:
-#         lines = file.readlines()
-#
-#         for i in range(0,len(lines),2):
-#             line = lines[i].strip()
-#
-#             if line.startswith('>'):
-#                 header = line[1:]
-#                 headers.append(header)
-#                 sequences.append(lines[i+1].strip())
-#
-#     return headers, sequences
+def read_fasta_file(file_path):
+    sequences = []
+    headers = []
+
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+        for i in range(0,len(lines),2):
+            line = lines[i].strip()
+
+            if line.startswith('>'):
+                header = line[1:]
+                headers.append(header)
+                sequences.append(lines[i+1].strip())
+
+    return headers, sequences
 
 
 def write_to_csv(sequences):
@@ -25,18 +25,19 @@ def write_to_csv(sequences):
     for sequence in sequences:
         entry = [sequence, 0]
         data.append(entry)
-    with open('./all_data/minus_2/balance_output.csv', 'a', newline='') as file:
+    with open('/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/all_data/balance_data.csv', 'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(data)
 
 
-# fasta_file = 'D:\课题\\final_fw\\neg.fasta'
-# headers, sequences = read_fasta_file(fasta_file)
-
-fake_data = pd.read_csv("./all_data/minus_2/minus_neg.csv")
-sequences = list(fake_data['Sequence'])
-sequences = random.sample(sequences,1850)
-write_to_csv(sequences)
+pos_file = '/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/test_fasta/pos.fasta'
+neg_file = '/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/test_fasta/neg.fasta'
+# headers, sequences = read_fasta_file(neg_file)
+# print(len(sequences))
+# fake_data = pd.read_csv("./all_data/minus_2/minus_neg.csv")
+# sequences = list(fake_data['Sequence'])
+# sequences = random.sample(sequences,1850)
+# write_to_csv(sequences)
 
 
 def split_dataset_nofold(sequences, labels, train_ratio, val_ratio, test_ratio):
@@ -104,11 +105,11 @@ def write_to_csv(data, filename):
         writer.writerow(['Sequence', 'Label'])
         writer.writerows(data)
 
-# 使用示例 - 假设sequences是包含一万多个元素的序列，labels是对应的标签
-data_set = pd.read_csv("./all_data/minus_2/balance_output.csv")
+# # 使用示例 - 假设sequences是包含一万多个元素的序列，labels是对应的标签
+data_set = pd.read_csv("/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/all_data/balance_data.csv")
 sequences = list(data_set['Sequence'])  # 序列数据
 labels = list(data_set['Label'])  # 标签数据
-
+#
 train_ratio = 0.8
 val_ratio = 0.1
 test_ratio = 0.1
@@ -117,6 +118,6 @@ train_data, val_data, test_data = split_dataset_nofold(sequences, labels, train_
 # # train_data, test_data = split_dataset(sequences,labels,train_ratio,test_ratio)
 #
 #
-write_to_csv(train_data, './no_fold/train.csv')
-write_to_csv(val_data, './no_fold/val.csv')
-write_to_csv(test_data, './no_fold/test.csv')
+write_to_csv(train_data, '/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/nofold_data/train.csv')
+write_to_csv(val_data, '/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/nofold_data/val.csv')
+write_to_csv(test_data, '/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/nofold_data/test.csv')

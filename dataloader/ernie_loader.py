@@ -45,6 +45,43 @@ def process_data(sequences,length):
     return new_sequences
 
 
+def ernie_load_ac4c_data():
+    train_file = r"/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/nofold_data/train.csv"
+    val_file = r"/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/nofold_data/val.csv"
+    test_file = r"/mnt/sdb/home/lrl/code/ac4c/data/new_test_data/nofold_data/test.csv"
+
+    train_data = pd.read_csv(train_file)
+    val_data = pd.read_csv(val_file)
+    test_data = pd.read_csv(test_file)
+
+    train_seq, train_label = list(train_data['Sequence']), list(train_data['Label'])
+    val_seq, val_label = list(val_data['Sequence']), list(val_data['Label'])
+    test_seq, test_label = list(test_data['Sequence']), list(test_data['Label'])
+
+    # 0 - 206
+    # max_len = 1001
+
+    half_length = 100
+
+    train_seq = process_data(train_seq,half_length)
+    test_seq = process_data(test_seq,half_length)
+    val_seq = process_data(val_seq,half_length)
+
+    train_seq, train_len = seq_to_index(train_seq)
+    val_seq, val_len = seq_to_index(val_seq)
+    test_seq, test_len = seq_to_index(test_seq)
+
+    train_dataset = ErniedataSet.MyDataset(train_seq,train_label,train_len)
+    val_dataset = ErniedataSet.MyDataset(val_seq, val_label,val_len)
+    test_dataset = ErniedataSet.MyDataset(test_seq, test_label,test_len)
+
+    train_dataloader = DataLoader(train_dataset,batch_size=16,shuffle=True,drop_last=True)
+    val_dataloader = DataLoader(val_dataset,batch_size=16,shuffle=True,drop_last=True)
+    test_dataloader = DataLoader(test_dataset,batch_size=16,shuffle=True,drop_last=True)
+
+    return train_dataloader , val_dataloader ,test_dataloader
+
+
 def load_ac4c_data(index):
     label_enc = {v:k for k,v in enumerate('NATCG')} # Z:0
 
@@ -69,7 +106,7 @@ def load_ac4c_data(index):
     test_seq  = list(test_data0['data'])+(list(test_data1['data']))
     test_label = list(test_data0['label'])  +  (list(test_data1['label']))
 
-    half_length = 25
+    half_length = 100
 
     train_seq = process_data(train_seq,half_length)
     test_seq = process_data(test_seq,half_length)

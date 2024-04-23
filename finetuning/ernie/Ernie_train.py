@@ -1,21 +1,21 @@
 import torch
 import sys
+import random
 sys.path.append('/mnt/sdb/home/lrl/code/ac4c')
 from termcolor import colored
 import torch.utils.data as Data
-# from models import Ernierna
-from dataloader import ernie_loader
+from dataloader import ernie_loader,ac4c_loader
 from sklearn.metrics import auc, roc_curve, precision_recall_curve, average_precision_score
-
-from src.ernie_rna.tasks.ernie_rna import *
 from src.ernie_rna.models.ernie_rna import *
+from tqdm import tqdm
 from src.ernie_rna.criterions.ernie_rna import *
 from src.utils import ErnieRNAOnestage, read_text_file, load_pretrained_ernierna, prepare_input_for_ernierna
 
 
 print("start")
 print("build model")
-device = torch.device("cuda",2)
+device = torch.device("cuda",1)
+print(torch.cuda.device_count())
 GLUE_TASKS = ["cola", "mnli", "mnli-mm", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"]
 task = "cola"
 pretrained_model_path = "/mnt/sdb/home/lrl/code/git_ERNIE/ERNIE-RNA/checkpoint/ERNIE-RNA_checkpoint/ERNIE-RNA_pretrain.pt"
@@ -129,10 +129,10 @@ def evaluate(data_iter, net, criterion):
     label_pred = []
     label_real = []
 
-    for batch in data_iter:
-        one_d = batch[0].to(device)
-        two_d = batch[1].to(device)
-        labels = batch[2].to(device)
+    for j, (one_d, two_d ,labels) in enumerate(tqdm(data_iter), 0):
+        one_d = one_d.to(device)
+        two_d = two_d.to(device)
+        labels = labels.to(device)
 
         output = net(one_d, two_d)
         loss = criterion(output, labels)
@@ -204,9 +204,9 @@ class Ernierna(nn.Module):
 
 
         self.block = nn.Sequential(
-            nn.Linear(2750, 1024),  #2750 53*768
+            nn.Linear(10250, 1024),  #415:320256 20850 201:154368 10250
             nn.BatchNorm1d(1024),
-            # nn.Dropout(0.2),
+            nn.Dropout(0.2),
             nn.LeakyReLU(),
             nn.Linear(1024, 256),
             nn.BatchNorm1d(256),
@@ -218,7 +218,7 @@ class Ernierna(nn.Module):
         )
 
 
-    def forward(self, one_d, two_d):  # [batch_size,1]
+    def forward(self, one_d, two_d):  # torch.Size([16, 1, 415])
         embedding = []
 
         for od, td in zip(one_d, two_d):
@@ -250,12 +250,28 @@ class Ernierna(nn.Module):
 
 
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.enabled = False
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 if __name__ == '__main__':
-    index = 2
-    model_name = 'GRU+RNA'
 
-    train_loader , valid_loader , test_loader =  ernie_loader.load_ac4c_data(index)
+    SEED = 42
+    set_seed(seed= SEED)
+
+    index = 3
+    model_name = 'RNA'
+
+    train_loader , valid_loader , test_loader =  ernie_loader.ernie_load_ac4c_data()
 
     epoch_num = 50
 
@@ -280,10 +296,10 @@ if __name__ == '__main__':
         loss_ls = []
         t0 = time.time()
         model.train()
-        for batch in train_loader:
-            one_d = batch[0].to(device)
-            two_d = batch[1].to(device)
-            labels = batch[2].to(device)
+        for i, (one_d, two_d,labels) in enumerate(tqdm(train_loader)):
+            one_d = one_d.to(device)
+            two_d = two_d.to(device)
+            labels = labels.to(device)
 
             output = model(one_d,two_d)
             optimizer.zero_grad()  # 梯度清0
@@ -322,16 +338,16 @@ if __name__ == '__main__':
             best_test_acc = test_acc
             best_epoch = epoch + 1
             # best_performance = valid_performance
-            filename = '{},{}, {}[{:.4f}].pt'.format(f'model_Ernie_model_51' + ', epoch[{}]'.format(epoch + 1),model_name, 'ACC',
+            filename = '{},{}, {}[{:.4f}].pt'.format('Ernie_model_201_SEED={}'.format(SEED) + ', epoch[{}]'.format(epoch + 1),model_name, 'ACC',
                                                   test_performance[0])
-            save_path_pt = os.path.join(f'Saved_Models/{index + 1}', filename)
+            save_path_pt = os.path.join(f'ac4c_models/Models/ERNIE/', filename)
             torch.save(model.state_dict(), save_path_pt, _use_new_zipfile_serialization=False)
 
             # to_log(test_results, index)
             test_ROC = valid_roc_data
             test_PRC = valid_prc_data
-            save_path_roc = os.path.join(f'ROC/{index + 1}', filename)
-            save_path_prc = os.path.join(f'PRC/{index + 1}', filename)
+            save_path_roc = os.path.join(f'ac4c_models/ROC/ERNIE+GRU/', filename)
+            save_path_prc = os.path.join(f'ac4c_models/PRC/ERNIE+GRU/', filename)
             torch.save(test_roc_data, save_path_roc, _use_new_zipfile_serialization=False)
             torch.save(test_prc_data, save_path_prc, _use_new_zipfile_serialization=False)
 

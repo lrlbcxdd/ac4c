@@ -55,13 +55,15 @@ def creatmat(data, base_range=30, lamda=0.8):
             break
     return coefficient
 
+length = 203
+
 def prepare_input_for_ernierna(index, seq_len = 1001):
-    shorten_index = index[:51 + 2]
+    shorten_index = index[:length]
     one_d = torch.from_numpy(shorten_index).long().reshape(1, -1)
-    two_d = np.zeros((1, 51 + 2, 51 + 2))
+    two_d = np.zeros((1, length, length))
     two_d[0, :, :] = creatmat(shorten_index.astype(int), base_range=1, lamda=0.8)
     two_d = two_d.transpose(1, 2, 0)
-    two_d = torch.from_numpy(two_d).reshape(1, 51 + 2, 51 + 2, 1)
+    two_d = torch.from_numpy(two_d).reshape(1, length,length, 1)
 
     return one_d, two_d
 
